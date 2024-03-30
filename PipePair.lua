@@ -13,7 +13,7 @@ PipePair = Class{}
 -- size of the gap between pipes
 
 
-function PipePair:init(y, gapHeight)
+function PipePair:init(y, gapHeight, isMoving, pipeMovingSpeed)
     -- flag to hold whether this pair has been scored (jumped through)
     self.scored = false
 
@@ -26,10 +26,13 @@ function PipePair:init(y, gapHeight)
     -- set the gap between pipes
     self.gapHeight = gapHeight
 
+    self.isMoving = isMoving
+    self.pipeMovingSpeed = pipeMovingSpeed
+
     -- instantiate two pipes that belong to this pair
     self.pipes = {
-        ['upper'] = Pipe('top', self.y),
-        ['lower'] = Pipe('bottom', self.y + PIPE_HEIGHT + self.gapHeight)
+        ['upper'] = Pipe('top', self.y, self.isMoving, self.pipeMovingSpeed),
+        ['lower'] = Pipe('bottom', self.y + PIPE_HEIGHT + self.gapHeight, self.isMoving, self.pipeMovingSpeed)
     }
 
     -- whether this pipe pair is ready to be removed from the scene
@@ -37,6 +40,9 @@ function PipePair:init(y, gapHeight)
 end
 
 function PipePair:update(dt)
+    self.pipes['lower']:update(dt)
+    self.pipes['upper']:update(dt)
+
     -- remove the pipe from the scene if it's beyond the left edge of the screen,
     -- else move it from right to left
     if self.x > -PIPE_WIDTH then

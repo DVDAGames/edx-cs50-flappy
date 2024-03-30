@@ -51,6 +51,46 @@ self.lastY = y
 table.insert(self.pipePairs, PipePair(y, gapHeight))
 ```
 
+### Moving Pipes
+
+In addition to variable gap height that shrinks with increasing scores, I also introduced a moving pipe mechanic that shifts the pipe pairs vertically at a speed that increases with the player's score.
+
+These pipes are also more likely to appear as the player's score increases.
+
+```lua
+local gapHeight = 90
+local isMoving = false
+local pipeMovingSpeed = 0
+
+if self.score < 5 then
+    gapHeight = LOW_SCORE_GAP_HEIGHTS[math.random(#LOW_SCORE_GAP_HEIGHTS)]
+    isMoving = math.random(10) < 2
+    pipeMovingSpeed = PIPE_MOVING_SPEED[1]
+elseif self.score < 10 then
+    gapHeight = MEDIUM_SCORE_GAP_HEIGHTS[math.random(#MEDIUM_SCORE_GAP_HEIGHTS)]
+    isMoving = math.random(10) < 4
+    pipeMovingSpeed = PIPE_MOVING_SPEED[2]
+else
+    gapHeight = HIGH_SCORE_GAP_HEIGHTS[math.random(#HIGH_SCORE_GAP_HEIGHTS)]
+    isMoving = math.random(10) < 7
+    pipeMovingSpeed = PIPE_MOVING_SPEED[3]
+
+    if self.score > 20 then
+        pipeMovingSpeed = PIPE_MOVING_SPEED[4]
+    end
+end
+
+-- modify the last Y coordinate we placed so pipe gaps aren't too far apart
+-- no higher than 10 pixels below the top edge of the screen,
+-- and no lower than a gap length (90 pixels) from the bottom
+local y = math.max(-PIPE_HEIGHT + 10, 
+    math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - gapHeight - PIPE_HEIGHT))
+
+self.lastY = y
+
+-- add a new pipe pair at the end of the screen at our new Y
+table.insert(self.pipePairs, PipePair(y, gapHeight, isMoving, pipeMovingSpeed))
+```
 
 ## Pausing the Game
 

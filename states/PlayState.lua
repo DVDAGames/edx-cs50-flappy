@@ -22,6 +22,8 @@ LOW_SCORE_GAP_HEIGHTS = {110, 120, 130}
 MEDIUM_SCORE_GAP_HEIGHTS = {90, 100, 110}
 HIGH_SCORE_GAP_HEIGHTS = {70, 80, 90}
 
+PIPE_MOVING_SPEED = {5, 10, 15, 20}
+
 function PlayState:init()
     self.bird = Bird()
     self.pipePairs = {}
@@ -54,15 +56,26 @@ function PlayState:update(dt)
 
         -- spawn a new pipe pair every second and a half
         if self.timer > 2 then
-            -- get a dynamic gap height
-            local gapHeight
+            local gapHeight = 90
+            local isMoving = false
+            local pipeMovingSpeed = 0
 
             if self.score < 5 then
                 gapHeight = LOW_SCORE_GAP_HEIGHTS[math.random(#LOW_SCORE_GAP_HEIGHTS)]
+                isMoving = math.random(10) < 2
+                pipeMovingSpeed = PIPE_MOVING_SPEED[1]
             elseif self.score < 10 then
                 gapHeight = MEDIUM_SCORE_GAP_HEIGHTS[math.random(#MEDIUM_SCORE_GAP_HEIGHTS)]
+                isMoving = math.random(10) < 4
+                pipeMovingSpeed = PIPE_MOVING_SPEED[2]
             else
                 gapHeight = HIGH_SCORE_GAP_HEIGHTS[math.random(#HIGH_SCORE_GAP_HEIGHTS)]
+                isMoving = math.random(10) < 7
+                pipeMovingSpeed = PIPE_MOVING_SPEED[3]
+
+                if self.score > 20 then
+                    pipeMovingSpeed = PIPE_MOVING_SPEED[4]
+                end
             end
 
             -- modify the last Y coordinate we placed so pipe gaps aren't too far apart
@@ -70,10 +83,11 @@ function PlayState:update(dt)
             -- and no lower than a gap length (90 pixels) from the bottom
             local y = math.max(-PIPE_HEIGHT + 10, 
                 math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - gapHeight - PIPE_HEIGHT))
+            
             self.lastY = y
 
             -- add a new pipe pair at the end of the screen at our new Y
-            table.insert(self.pipePairs, PipePair(y, gapHeight))
+            table.insert(self.pipePairs, PipePair(y, gapHeight, isMoving, pipeMovingSpeed))
 
             -- reset timer
             self.timer = 0
@@ -85,8 +99,14 @@ function PlayState:update(dt)
             -- be sure to ignore it if it's already been scored
             if not pair.scored then
                 if pair.x + PIPE_WIDTH < self.bird.x then
-                    self.score = self.score + 1
+                    if pair.isMoving then
+                        self.score = self.score + 2
+                    else
+                        self.score = self.score + 1
+                    end
+
                     pair.scored = true
+
                     sounds['score']:play()
                 end
             end

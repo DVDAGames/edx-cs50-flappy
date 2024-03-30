@@ -8,6 +8,50 @@ The game is a clone of the popular mobile game Flappy Bird, and the goal is to t
 - [ ] An award system using medals for various scores
 - [ ] More interesting procedural level generation
 
+## Better Level Generation
+
+The initial level generation relies on some hard-coded values to determine the gap between pipes and the height of the pipes themselves. This is fine for a simple game, but my first inclination was to make this value random. Truly random values between a mininum and maximum didn't feel quite right, so I ended up with a list of pre-defined values that would be randomly selected from.
+
+```lua
+-- the gap between pipes will be a random value
+local GAP_HEIGHTS = { 80, 90, 100, 110, 120, 130 }
+```
+
+I'm bad a Flappy Bird, though. So to make this a little more fun for players like me, I decided to break the gap heights into three levels of difficulty and increase the difficulty by decreasing the gap height based on the user's current sore.
+  
+```lua
+-- we'll dynamically generate the gap height based on the score to increase difficulty as the player progresses
+LOW_SCORE_GAP_HEIGHTS = {110, 120, 130}
+MEDIUM_SCORE_GAP_HEIGHTS = {90, 100, 110}
+HIGH_SCORE_GAP_HEIGHTS = {70, 80, 90}
+```
+
+And then when generating a pair of pipes, we pass a dynamic gap height value to the constructor:
+
+```lua
+-- get a dynamic gap height
+local gapHeight
+
+if self.score < 5 then
+    gapHeight = LOW_SCORE_GAP_HEIGHTS[math.random(#LOW_SCORE_GAP_HEIGHTS)]
+elseif self.score < 10 then
+    gapHeight = MEDIUM_SCORE_GAP_HEIGHTS[math.random(#MEDIUM_SCORE_GAP_HEIGHTS)]
+else
+    gapHeight = HIGH_SCORE_GAP_HEIGHTS[math.random(#HIGH_SCORE_GAP_HEIGHTS)]
+end
+
+-- modify the last Y coordinate we placed so pipe gaps aren't too far apart
+-- no higher than 10 pixels below the top edge of the screen,
+-- and no lower than a gap length (90 pixels) from the bottom
+local y = math.max(-PIPE_HEIGHT + 10, 
+    math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - gapHeight - PIPE_HEIGHT))
+self.lastY = y
+
+-- add a new pipe pair at the end of the screen at our new Y
+table.insert(self.pipePairs, PipePair(y, gapHeight))
+```
+
+
 ## Pausing the Game
 
 There are a few considerations when pausing the game:

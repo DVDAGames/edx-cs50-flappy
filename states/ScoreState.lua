@@ -16,6 +16,20 @@ ScoreState = Class{__includes = BaseState}
 ]]
 function ScoreState:enter(params)
     self.score = params.score
+
+    self.medal = null
+    self.medalType = null
+
+    if self.score >= 21 then
+        self.medal = love.graphics.newImage('platinum.png')
+        self.medalType = 'Platinum'
+    elseif self.score >= 14 then
+        self.medal = love.graphics.newImage('gold.png')
+        self.medalType = 'Gold'
+    elseif self.score >= 7 then
+        self.medal = love.graphics.newImage('silver.png')
+        self.medalType = 'Silver'
+    end
 end
 
 function ScoreState:update(dt)
@@ -26,12 +40,17 @@ function ScoreState:update(dt)
 end
 
 function ScoreState:render()
-    -- simply render the score to the middle of the screen
-    love.graphics.setFont(flappyFont)
-    love.graphics.printf('Oof! You lost!', 0, 64, VIRTUAL_WIDTH, 'center')
-
-    love.graphics.setFont(mediumFont)
-    love.graphics.printf('Score: ' .. tostring(self.score), 0, 100, VIRTUAL_WIDTH, 'center')
-
-    love.graphics.printf('Press Enter to Play Again!', 0, 160, VIRTUAL_WIDTH, 'center')
+    -- render score and any medals to the screen
+    if self.medal then
+        love.graphics.setFont(mediumFont)
+        love.graphics.printf('Congratulations! You won a '..self.medalType..' medal!', 0, 64, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Score: ' .. tostring(self.score), 0, 100, VIRTUAL_WIDTH, 'center')
+        love.graphics.draw(self.medal, VIRTUAL_WIDTH / 2 - self.medal:getWidth() / 2, 120)
+        love.graphics.printf('Press Enter to Play Again!', 0, 220, VIRTUAL_WIDTH, 'center')
+    else
+        love.graphics.setFont(flappyFont)
+        love.graphics.printf('Oof! You lost!', 0, 64, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Score: ' .. tostring(self.score), 0, 100, VIRTUAL_WIDTH, 'center')
+        love.graphics.printf('Press Enter to Play Again!', 0, 160, VIRTUAL_WIDTH, 'center')
+    end
 end

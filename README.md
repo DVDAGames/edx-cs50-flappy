@@ -2,11 +2,13 @@
 
 This is `Project 1` for [CS50's Introduction to Game Development](https://cs50.harvard.edu/games/2018/).
 
+![flappy bird demo](./assets/flappy.gif)
+
 The game is a clone of the popular mobile game Flappy Bird, and the goal is to take the provided [Love2D](https://love2d.org/) project and add several features to it:
 
+- [x] More interesting procedural level generation
 - [x] A Pause feature
-- [ ] An award system using medals for various scores
-- [ ] More interesting procedural level generation
+- [x] An award system using medals for various scores
 
 ## Better Level Generation
 
@@ -55,42 +57,95 @@ table.insert(self.pipePairs, PipePair(y, gapHeight))
 
 In addition to variable gap height that shrinks with increasing scores, I also introduced a moving pipe mechanic that shifts the pipe pairs vertically at a speed that increases with the player's score.
 
-These pipes are also more likely to appear as the player's score increases.
+These pipes are also more likely to appear as the player's score increases and are worth more points than regular pipes.
+
+We also decrease the time between pipe spawns as the player's score increases to make the game more challenging.
 
 ```lua
-local gapHeight = 90
-local isMoving = false
-local pipeMovingSpeed = 0
+-- spawn a new pipe pair
+if self.timer > self.spawnTimer then
+    local gapHeight = 90
+    local isMoving = false
+    local pipeMovingSpeed = 0
 
-if self.score < 5 then
-    gapHeight = LOW_SCORE_GAP_HEIGHTS[math.random(#LOW_SCORE_GAP_HEIGHTS)]
-    isMoving = math.random(10) < 2
-    pipeMovingSpeed = PIPE_MOVING_SPEED[1]
-elseif self.score < 10 then
-    gapHeight = MEDIUM_SCORE_GAP_HEIGHTS[math.random(#MEDIUM_SCORE_GAP_HEIGHTS)]
-    isMoving = math.random(10) < 4
-    pipeMovingSpeed = PIPE_MOVING_SPEED[2]
-else
-    gapHeight = HIGH_SCORE_GAP_HEIGHTS[math.random(#HIGH_SCORE_GAP_HEIGHTS)]
-    isMoving = math.random(10) < 7
-    pipeMovingSpeed = PIPE_MOVING_SPEED[3]
+    if self.score < 5 then
+        self.spawnTimer = math.random(1.5, 3.5)
+        gapHeight = LOW_SCORE_GAP_HEIGHTS[math.random(#LOW_SCORE_GAP_HEIGHTS)]
+        isMoving = math.random(10) < 2
+        pipeMovingSpeed = PIPE_MOVING_SPEED[1]
+    elseif self.score < 10 then
+        self.spawnTimer = math.random(1.5, 3)
+        gapHeight = MEDIUM_SCORE_GAP_HEIGHTS[math.random(#MEDIUM_SCORE_GAP_HEIGHTS)]
+        isMoving = math.random(10) < 4
+        pipeMovingSpeed = PIPE_MOVING_SPEED[2]
+    else
+        self.spawnTimer = math.random(1.5, 2.5)
+        gapHeight = HIGH_SCORE_GAP_HEIGHTS[math.random(#HIGH_SCORE_GAP_HEIGHTS)]
+        isMoving = math.random(10) < 7
+        pipeMovingSpeed = PIPE_MOVING_SPEED[3]
 
-    if self.score > 20 then
-        pipeMovingSpeed = PIPE_MOVING_SPEED[4]
+        if self.score > 20 then
+            self.spawnTimer = math.random(1.5, 2)
+            pipeMovingSpeed = PIPE_MOVING_SPEED[4]
+        end
     end
+
+    -- modify the last Y coordinate we placed so pipe gaps aren't too far apart
+    -- no higher than 10 pixels below the top edge of the screen,
+    -- and no lower than a gap length (90 pixels) from the bottom
+    local y = math.max(-PIPE_HEIGHT + 10, 
+        math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - gapHeight - PIPE_HEIGHT))
+    
+    self.lastY = y
+
+    -- add a new pipe pair at the end of the screen at our new Y
+    table.insert(self.pipePairs, PipePair(y, gapHeight, isMoving, pipeMovingSpeed))
+
+    -- reset timer
+    self.timer = 0
 end
-
--- modify the last Y coordinate we placed so pipe gaps aren't too far apart
--- no higher than 10 pixels below the top edge of the screen,
--- and no lower than a gap length (90 pixels) from the bottom
-local y = math.max(-PIPE_HEIGHT + 10, 
-    math.min(self.lastY + math.random(-20, 20), VIRTUAL_HEIGHT - gapHeight - PIPE_HEIGHT))
-
-self.lastY = y
-
--- add a new pipe pair at the end of the screen at our new Y
-table.insert(self.pipePairs, PipePair(y, gapHeight, isMoving, pipeMovingSpeed))
 ```
+
+Because they are procedurally generated and could create some difficult situations, there is also a point multiplier that increments with consecutive moving pipes to reward skilled players who are presented with a more difficult level.
+
+A new sound effect was added to indicate a difference in points earned when passing a moving pipe.
+
+```lua
+-- for every pair of pipes
+for k, pair in pairs(self.pipePairs) do
+    -- score a point if the pipe has gone past the bird to the left all the way
+    -- be sure to ignore it if it's already been scored
+    if not pair.scored then
+        if pair.x + PIPE_WIDTH < self.bird.x then
+            sounds['score']:play()
+
+            -- handle point multipliers for moving pipes
+            if pair.isMoving then
+                self.scoreMultiplier = self.scoreMultiplier + 1
+                self.score = self.score + 1 * self.scoreMultiplier
+
+                sounds['multiplier']:play()
+            else
+                self.scoreMultiplier = 1
+                self.score = self.score + 1
+            end
+
+            pair.scored = true
+        end
+    end
+
+    -- update position of pair
+    pair:update(dt)
+end
+```
+
+#### Closing Pipes
+
+In my first implementation of moving pipes, I was incorreclty setting the pipe's moving direction at the `Pip` level, which lead to some unexpected results where pipes would be opening/closing instead of moving vertically in unison.
+
+It was a fun effect that added some additional challenge to the game, but requires some extra logic to make sure the pipes don't close too much and prevent the player from moving through the gap.
+
+This is a feature that I might circle back to as a future update once the user's score gets to a certain level, but the effort required to make a level still be fun and playable with pipes that can close the gap is a bit more than I want to tackle right now for this project.
 
 ## Pausing the Game
 
@@ -155,3 +210,22 @@ function PlayState:update(dt)
   end
 end
 ```
+
+## Medals for High Scores
+
+The final goal of this project was to add a simple achievement/medal system that would reward players for various scores.
+
+I decided to go with a system based on multiples of `7`:
+
+- `7` points: **Silver Medal**
+- `14` points: **Gold Medal**
+- `21` points: **Platinum Medal**
+
+The medals are displayed in the `ScoreState` screen and are simple pixel art images generated in Aseprite using the provided `bird.png` as a base.
+
+Given more time to play around with it, I would probably create more achievements for things like:
+
+- colliding with a moving pipe that's hidden off screen
+- colliding with the side of a pipe instead of the top/bottom in the gap
+- passing a certain number of moving pipes in a row
+- passing a certain number of moving pipes total

@@ -67,7 +67,7 @@ function love.load()
     love.graphics.setDefaultFilter('nearest', 'nearest')
 
     -- seed the RNG
-    math.randomseed(os.time())
+    math.randomseed(os.clock() * 100000000000)
 
     -- app window title
     love.window.setTitle('Fifty Bird')
@@ -85,6 +85,9 @@ function love.load()
         ['explosion'] = love.audio.newSource('explosion.wav', 'static'),
         ['hurt'] = love.audio.newSource('hurt.wav', 'static'),
         ['score'] = love.audio.newSource('score.wav', 'static'),
+        ['multiplier'] = love.audio.newSource('multiplier.wav', 'static'),
+        ['pause'] = love.audio.newSource('pause.wav', 'static'),
+        ['unpause'] = love.audio.newSource('unpause.wav', 'static'),
 
         -- https://freesound.org/people/xsgianni/sounds/388079/
         ['music'] = love.audio.newSource('marios_way.mp3', 'static')

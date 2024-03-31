@@ -28,11 +28,17 @@ function PipePair:init(y, gapHeight, isMoving, pipeMovingSpeed)
 
     self.isMoving = isMoving
     self.pipeMovingSpeed = pipeMovingSpeed
+    
+    if self.isMoving then
+        self.pipeMovingDirection = math.random(2) == 1 and 1 or -1
+    else
+        self.pipeMovingDirection = 0
+    end
 
     -- instantiate two pipes that belong to this pair
     self.pipes = {
-        ['upper'] = Pipe('top', self.y, self.isMoving, self.pipeMovingSpeed),
-        ['lower'] = Pipe('bottom', self.y + PIPE_HEIGHT + self.gapHeight, self.isMoving, self.pipeMovingSpeed)
+        ['upper'] = Pipe('top', self.y, self.isMoving, self.pipeMovingSpeed, self.pipeMovingDirection),
+        ['lower'] = Pipe('bottom', self.y + PIPE_HEIGHT + self.gapHeight, self.isMoving, self.pipeMovingSpeed, self.pipeMovingDirection)
     }
 
     -- whether this pipe pair is ready to be removed from the scene

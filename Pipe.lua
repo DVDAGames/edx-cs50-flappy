@@ -14,7 +14,7 @@ Pipe = Class{}
 -- since we only want the image loaded once, not per instantation, define it externally
 local PIPE_IMAGE = love.graphics.newImage('pipe.png')
 
-function Pipe:init(orientation, y, isMoving, pipeMovingSpeed)
+function Pipe:init(orientation, y, isMoving, pipeMovingSpeed, pipeMovingDirection)
     self.x = VIRTUAL_WIDTH + 64
     self.y = y
 
@@ -25,12 +25,7 @@ function Pipe:init(orientation, y, isMoving, pipeMovingSpeed)
 
     self.isMoving = isMoving
     self.pipeMovingSpeed = pipeMovingSpeed
-
-    if self.isMoving then
-        self.movingDirection = math.random(2) == 1 and 1 or -1
-    else
-        self.movingDirection = 0
-    end
+    self.pipeMovingDirection = pipeMovingDirection
 
     self.timer = 0
 end
@@ -39,14 +34,14 @@ function Pipe:update(dt)
     if self.isMoving then
         self.timer = self.timer + dt
 
-        if self.orientation == 'top' then
-            self.y = self.y - self.movingDirection * self.pipeMovingSpeed * dt
-        else
-            self.y = self.y + self.movingDirection * self.pipeMovingSpeed * dt
-        end
+        local deltaY = self.pipeMovingSpeed * dt
 
-        if self.timer > 5 then
-            self.movingDirection = -self.movingDirection
+        local deltaYWithDirection = deltaY * self.pipeMovingDirection
+
+        self.y = self.y + deltaYWithDirection
+
+        if self.timer > 4 then
+            self.pipeMovingDirection = -self.pipeMovingDirection
             self.timer = 0
         end
     end

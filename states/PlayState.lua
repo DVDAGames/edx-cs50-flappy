@@ -33,6 +33,11 @@ function PlayState:init()
     -- initialize our last recorded Y value for a gap placement to base other gaps off of
     self.lastY = -PIPE_HEIGHT + math.random(80) + 20
 
+    -- we'll implement a score multiplier if the player navigates multiple moving pipes in a row
+    self.scoreMultiplier = 1
+
+    self.spawnTimer = math.random(1.5, 3.5)
+
     self.paused = false
 end
 
@@ -45,7 +50,9 @@ function PlayState:update(dt)
         
         if sounds['music']:isPlaying() then
             sounds['music']:pause()
+            sounds['pause']:play()
         else
+            sounds['unpause']:play()
             sounds['music']:play()
         end
     end
@@ -54,26 +61,30 @@ function PlayState:update(dt)
         -- update timer for pipe spawning
         self.timer = self.timer + dt
 
-        -- spawn a new pipe pair every second and a half
-        if self.timer > 2 then
+        -- spawn a new pipe pair
+        if self.timer > self.spawnTimer then
             local gapHeight = 90
             local isMoving = false
             local pipeMovingSpeed = 0
 
             if self.score < 5 then
+                self.spawnTimer = math.random(1.5, 3.5)
                 gapHeight = LOW_SCORE_GAP_HEIGHTS[math.random(#LOW_SCORE_GAP_HEIGHTS)]
                 isMoving = math.random(10) < 2
                 pipeMovingSpeed = PIPE_MOVING_SPEED[1]
             elseif self.score < 10 then
+                self.spawnTimer = math.random(1.5, 3)
                 gapHeight = MEDIUM_SCORE_GAP_HEIGHTS[math.random(#MEDIUM_SCORE_GAP_HEIGHTS)]
                 isMoving = math.random(10) < 4
                 pipeMovingSpeed = PIPE_MOVING_SPEED[2]
             else
+                self.spawnTimer = math.random(1.5, 2.5)
                 gapHeight = HIGH_SCORE_GAP_HEIGHTS[math.random(#HIGH_SCORE_GAP_HEIGHTS)]
                 isMoving = math.random(10) < 7
                 pipeMovingSpeed = PIPE_MOVING_SPEED[3]
 
                 if self.score > 20 then
+                    self.spawnTimer = math.random(1.5, 2)
                     pipeMovingSpeed = PIPE_MOVING_SPEED[4]
                 end
             end
@@ -93,21 +104,26 @@ function PlayState:update(dt)
             self.timer = 0
         end
 
-        -- for every pair of pipes..
+        -- for every pair of pipes
         for k, pair in pairs(self.pipePairs) do
             -- score a point if the pipe has gone past the bird to the left all the way
             -- be sure to ignore it if it's already been scored
             if not pair.scored then
                 if pair.x + PIPE_WIDTH < self.bird.x then
+                    sounds['score']:play()
+
+                    -- handle point multipliers for moving pipes
                     if pair.isMoving then
-                        self.score = self.score + 2
+                        self.scoreMultiplier = self.scoreMultiplier + 1
+                        self.score = self.score + 1 * self.scoreMultiplier
+
+                        sounds['multiplier']:play()
                     else
+                        self.scoreMultiplier = 1
                         self.score = self.score + 1
                     end
 
                     pair.scored = true
-
-                    sounds['score']:play()
                 end
             end
 
@@ -170,6 +186,9 @@ function PlayState:render()
     else
         love.graphics.setFont(flappyFont)
         love.graphics.print('Score: ' .. tostring(self.score), 8, 8)
+
+        love.graphics.setFont(smallFont)
+        love.graphics.print('Press Enter to Pause', 8, 40)
     end
 end
 
